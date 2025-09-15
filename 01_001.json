@@ -1,0 +1,8 @@
+{
+  "lines": [
+    { "bg": "bg/bg_lib_aft.jpg", "char": "char/char_kuro.png",
+      "text": "석양으로 마을이 불타는 것 같다..." },
+    { "text": "그렇게 말해도, 아무도 듣지 않는다." },
+    { "text": "난 여기서 무얼 해야 할까?" }
+  ]
+}

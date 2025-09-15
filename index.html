@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>웹 비주얼노벨</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 메인 메뉴 (게임 시작, 세팅) -->
+  <div id="main-menu" class="menu">
+    <h1>비주얼노벨</h1>
+    <button id="btn-start">게임 시작</button>
+    <button id="btn-settings">세팅</button>
+  </div>
+
+  <!-- 게임 화면 -->
+  <div id="game-screen" class="hidden">
+    <div id="background"></div>
+    <div id="character"></div>
+    <div id="fadeLayer"></div>
+    <div id="text-area"></div>
+  </div>
+
+  <!-- 세팅창 (간단) -->
+  <div id="settings" class="popup hidden">
+    <h2>세팅</h2>
+    <button id="btn-close-settings">닫기</button>
+    <button id="btn-exit-to-menu">메인으로 돌아가기</button>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
