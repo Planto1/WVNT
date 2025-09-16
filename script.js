@@ -1,4 +1,4 @@
-/* 비주얼노벨 게임 엔진 - 최적화 버전 */
+/* 비주얼노벨 게임 엔진 - 타이핑 효과 추가 버전 */
 
 ///// 상태 변수
 let sceneIndex = {};
@@ -8,13 +8,13 @@ let scriptData = null;
 let lineIndex = 0;
 let charCount = 0;
 let firstLineOfScene = true;
+let busy = false;
 let isTyping = false;
 let skipRequested = false;
-let busy = false;
 let typingTimeoutId = null;
 
-const TYPING_MS = 0;
-const CHAR_LIMIT = 300;
+const CHAR_LIMIT = 200;
+const TYPING_SPEED = 30; // 타이핑 속도 (밀리초)
 
 ///// DOM 요소
 const elMain = document.getElementById("main-menu");
@@ -58,7 +58,13 @@ elGame.addEventListener("click", (e) => {
   e.stopPropagation();
   if (elGame.classList.contains("hidden")) return;
   if (!elSettings.classList.contains("hidden")) return;
-  requestNext();
+  
+  // 타이핑 중이면 스킵, 아니면 다음 진행
+  if (isTyping) {
+    skipRequested = true;
+  } else {
+    requestNext();
+  }
 });
 
 ///// 유틸리티 함수
@@ -80,13 +86,16 @@ function resetGame() {
   lineIndex = 0;
   charCount = 0;
   firstLineOfScene = true;
+  busy = false;
   isTyping = false;
   skipRequested = false;
-  busy = false;
+  
+  // 타이핑 타임아웃 정리
   if (typingTimeoutId) {
     clearTimeout(typingTimeoutId);
     typingTimeoutId = null;
   }
+  
   elTextArea.innerHTML = "";
   elCharacter.innerHTML = "";
 }
@@ -186,10 +195,7 @@ function requestNext() {
 }
 
 async function showNext() {
-  if (busy) {
-    if (isTyping) skipRequested = true;
-    return;
-  }
+  if (busy) return;
   busy = true;
 
   try {
@@ -234,49 +240,81 @@ async function showNext() {
   }
 }
 
+// 타이핑 효과 함수 (애니메이션 효과 제거)
 function typeText(element, text) {
   return new Promise((resolve) => {
     isTyping = true;
     skipRequested = false;
     element.textContent = "";
+    
+    // 애니메이션 효과 제거 - 바로 보이게 설정
+    element.style.opacity = "1";
+    element.style.transform = "none";
 
+    // 이전 타이핑 타임아웃 정리
     if (typingTimeoutId) {
       clearTimeout(typingTimeoutId);
       typingTimeoutId = null;
     }
 
-    if (!text) {
-      element.classList.add("show");
+    // 빈 텍스트 처리
+    if (!text || text.trim() === "") {
       isTyping = false;
       resolve();
       return;
     }
 
-    let i = 0;
-    function step() {
+    let currentIndex = 0;
+    
+    function typeNextChar() {
+      // 스킵이 요청되었을 때
       if (skipRequested) {
+        // 타임아웃 정리
         if (typingTimeoutId) {
           clearTimeout(typingTimeoutId);
           typingTimeoutId = null;
         }
+        
+        // 전체 텍스트를 한번에 표시
         element.textContent = text;
-        element.classList.add("show");
+        isTyping = false;
+        skipRequested = false;
+        resolve();
+        return;
+      }
+
+      // 모든 글자를 다 쳤을 때
+      if (currentIndex >= text.length) {
+        if (typingTimeoutId) {
+          clearTimeout(typingTimeoutId);
+          typingTimeoutId = null;
+        }
         isTyping = false;
         resolve();
         return;
       }
 
-      if (i < text.length) {
-        element.textContent += text.charAt(i++);
-        typingTimeoutId = setTimeout(step, TYPING_MS);
-      } else {
-        element.classList.add("show");
-        isTyping = false;
-        typingTimeoutId = null;
-        resolve();
+      // 현재 글자 추가
+      const char = text.charAt(currentIndex);
+      element.textContent += char;
+      currentIndex++;
+      
+      // 구두점에서 약간 더 긴 대기시간
+      let delay = TYPING_SPEED;
+      
+      if (char === '.' || char === '!' || char === '?' || 
+          char === '…' || char === '。') {
+        delay = TYPING_SPEED * 3; // 구두점에서 3배 더 대기
+      } else if (char === ',' || char === '、') {
+        delay = TYPING_SPEED * 2; // 쉼표에서 2배 대기
       }
+
+      // 다음 글자 예약
+      typingTimeoutId = setTimeout(typeNextChar, delay);
     }
-    step();
+    
+    // 타이핑 시작
+    typeNextChar();
   });
 }
 

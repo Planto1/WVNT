@@ -61,18 +61,18 @@ button {
   display: block;
 }
 
-/* 페이드 레이어 (transition은 JS에서 임시 비활성화할 수 있음) */
+/* 페이드 레이어 */
 #fadeLayer {
   position: absolute;
   inset: 0;
   background: black;
-  opacity: 0; /* 초기 밝은 상태 */
+  opacity: 0;
   transition: opacity 1s ease;
   z-index: 2;
   pointer-events: none;
 }
 
-/* 텍스트가 위에서 아래로 쌓이는 영역 */
+/* 텍스트 영역 - 애니메이션 효과 제거 */
 #text-area {
   position: absolute;
   top: 20px;
@@ -86,18 +86,13 @@ button {
   user-select: none;
 }
 
-/* 개별 줄 애니메이션 */
+/* 개별 줄 - 애니메이션 제거하고 바로 표시 */
 .line {
-  opacity: 0;
-  transform: translateY(-18px);
+  opacity: 1;
+  transform: none;
   margin: 0 0 var(--line-gap) 0;
-  transition: opacity 0.25s ease, transform 0.25s ease;
   white-space: pre-wrap;
   word-break: keep-all;
-}
-.line.show {
-  opacity: 1;
-  transform: translateY(0);
 }
 
 /* 팝업 세팅 */
