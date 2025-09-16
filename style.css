@@ -1,15 +1,61 @@
 :root {
-  --text-size: 30px; /* 폰트 크게 */
-  --line-gap: 8px;
+  --text-size: 18px; /* 폰트 크기 줄임 */
+  --line-gap: 6px;
+  --game-width: 480px;  /* 3:4 비율 */
+  --game-height: 640px;
 }
 
-* { box-sizing: border-box; }
+* { 
+  box-sizing: border-box; 
+  image-rendering: pixelated; /* 픽셀 아트 느낌 */
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
 body {
   margin: 0;
   background: black;
   font-family: "Malgun Gothic", "Noto Sans KR", sans-serif;
   color: white;
   overflow: hidden;
+  
+  /* 화면 중앙 정렬 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* 게임 컨테이너 - 3:4 비율 고정 */
+.game-container {
+  width: var(--game-width);
+  height: var(--game-height);
+  background: black;
+  position: relative;
+  border: 2px solid #333;
+  
+  /* 화면이 작을 때 스케일 조정 */
+  transform-origin: center;
+}
+
+/* 반응형 스케일링 */
+@media (max-width: 500px) {
+  .game-container {
+    transform: scale(0.8);
+  }
+}
+
+@media (max-height: 660px) {
+  .game-container {
+    transform: scale(0.7);
+  }
+}
+
+@media (max-width: 400px) or (max-height: 550px) {
+  .game-container {
+    transform: scale(0.6);
+  }
 }
 
 /* 숨김 */
@@ -26,20 +72,34 @@ body {
   gap: 16px;
 }
 
-/* 버튼 스타일 (심플) */
+.menu h1 {
+  font-size: 24px;
+  margin: 0;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+}
+
+/* 버튼 스타일 */
 button {
-  padding: 10px 18px;
-  font-size: 18px;
-  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  border-radius: 4px;
   border: none;
   cursor: pointer;
+  background: #444;
+  color: white;
+  min-width: 120px;
+}
+
+button:hover {
+  background: #555;
 }
 
 /* 게임 화면 */
 #game-screen {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 /* 배경/캐릭터 계층 */
@@ -48,7 +108,10 @@ button {
   inset: 0;
   background: #111 center/cover no-repeat;
   z-index: 0;
+  /* 저해상도 느낌을 위한 필터 */
+  image-rendering: pixelated;
 }
+
 #character {
   position: absolute;
   bottom: 0;
@@ -56,9 +119,12 @@ button {
   transform: translateX(-50%);
   z-index: 1;
 }
+
 #character img {
-  max-height: 86vh;
+  max-height: 480px; /* 게임 높이의 75% */
+  max-width: 100%;
   display: block;
+  image-rendering: pixelated;
 }
 
 /* 페이드 레이어 */
@@ -72,27 +138,30 @@ button {
   pointer-events: none;
 }
 
-/* 텍스트 영역 - 애니메이션 효과 제거 */
+/* 텍스트 영역 */
 #text-area {
   position: absolute;
-  top: 20px;
+  top: 15px;
   left: 50%;
   transform: translateX(-50%);
-  width: min(92%, 900px);
+  width: 94%;
   z-index: 3;
   font-size: var(--text-size);
-  line-height: 1.6;
-  text-shadow: 2px 2px 6px rgba(0,0,0,0.9);
+  line-height: 1.5;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
   user-select: none;
+  max-height: 200px; /* 텍스트 영역 제한 */
+  overflow-y: auto;
 }
 
-/* 개별 줄 - 애니메이션 제거하고 바로 표시 */
+/* 개별 줄 */
 .line {
   opacity: 1;
   transform: none;
   margin: 0 0 var(--line-gap) 0;
   white-space: pre-wrap;
   word-break: keep-all;
+  font-size: var(--text-size);
 }
 
 /* 팝업 세팅 */
@@ -101,11 +170,20 @@ button {
   top: 50%;
   left: 50%;
   transform: translate(-50%,-50%);
-  background: rgba(0,0,0,0.85);
-  border: 2px solid rgba(255,255,255,0.08);
-  padding: 18px;
+  background: rgba(0,0,0,0.9);
+  border: 2px solid rgba(255,255,255,0.1);
+  padding: 20px;
   z-index: 10;
-  min-width: 260px;
+  min-width: 200px;
   text-align: center;
-  border-radius: 8px;
+  border-radius: 4px;
+}
+
+.popup h2 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+}
+
+.popup button {
+  margin: 5px;
 }
