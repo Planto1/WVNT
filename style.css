@@ -34,7 +34,7 @@ body {
   letter-spacing: 0.5px;
 }
 
-/* 게임 컨테이너 - 4:3 비율을 완벽히 유지하면서 화면에 맞게 조정 */
+/* 게임 컨테이너 - 4:3 비율 유지 */
 .game-container {
   width: 100vw;
   height: 100vh;
@@ -106,13 +106,8 @@ button {
   transition: background-color 0.2s;
 }
 
-button:hover {
-  background: #555;
-}
-
-button:active {
-  background: #666;
-}
+button:hover { background: #555; }
+button:active { background: #666; }
 
 /* 게임 화면 */
 #game-screen {
@@ -138,33 +133,21 @@ button:active {
   z-index: 1;
   width: 100%;
   text-align: center;
-  /* 캐릭터 영역도 고정 비율로 설정 */
   height: 75%;
   max-height: 75%;
-  /* 기본 위치는 중앙 */
   left: 50%;
   transform: translateX(-50%);
   transition: left 0.5s ease, transform 0.5s ease;
+
+  /* 캐릭터 영역 클릭/드래그 차단 */
+  pointer-events: none;
 }
 
-/* 캐릭터 위치별 클래스 */
-#character.pos-left {
-  left: 20%;
-  transform: translateX(-50%);
-}
-
-#character.pos-right {
-  left: 80%;
-  transform: translateX(-50%);
-}
-
-#character.pos-center {
-  left: 50%;
-  transform: translateX(-50%);
-}
+#character.pos-left { left: 20%; transform: translateX(-50%); }
+#character.pos-right { left: 80%; transform: translateX(-50%); }
+#character.pos-center { left: 50%; transform: translateX(-50%); }
 
 #character img {
-  /* 캐릭터 크기를 다시 늘림 */
   max-height: 100%;
   max-width: 85%;
   height: auto;
@@ -173,6 +156,10 @@ button:active {
   image-rendering: pixelated;
   margin: 0 auto;
   object-fit: contain;
+
+  /* 이미지도 선택/클릭 차단 */
+  user-select: none;
+  pointer-events: none;
 }
 
 /* 페이드 레이어 */
@@ -196,9 +183,10 @@ button:active {
   font-size: var(--text-size);
   line-height: 1.6;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+
+  /* 텍스트 선택/드래그 차단 */
   user-select: none;
-  
-  /* 텍스트 영역을 화면 비율에 맞게 고정 */
+
   height: calc(25% - var(--padding));
   min-height: calc(25% - var(--padding));
   max-height: calc(25% - var(--padding));
@@ -238,28 +226,19 @@ button:active {
   font-size: var(--popup-font);
 }
 
-.popup button {
-  margin: clamp(4px, 0.5vmin, 8px);
-}
+.popup button { margin: clamp(4px, 0.5vmin, 8px); }
 
-/* 스크롤바 스타일링 */
-#text-area::-webkit-scrollbar {
-  width: clamp(4px, 0.5vmin, 8px);
-}
-
+/* 스크롤바 */
+#text-area::-webkit-scrollbar { width: clamp(4px, 0.5vmin, 8px); }
 #text-area::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.1);
   border-radius: clamp(2px, 0.3vmin, 4px);
 }
-
 #text-area::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.3);
   border-radius: clamp(2px, 0.3vmin, 4px);
 }
-
-#text-area::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
-}
+#text-area::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.5); }
 
 /* 작은 화면 대응 */
 @media (max-height: 400px) {
@@ -269,59 +248,35 @@ button:active {
     max-height: calc(30% - var(--padding));
     font-size: clamp(12px, 2.2vmin, 24px);
   }
-  
-  #character {
-    height: 70%;
-    max-height: 70%;
-  }
-  
-  #character img {
-    max-width: 80%;
-  }
+  #character { height: 70%; max-height: 70%; }
+  #character img { max-width: 80%; }
 }
 
-/* 세로가 긴 화면 (모바일) 대응 */
+/* 세로 긴 화면 */
 @media (max-aspect-ratio: 4/3) {
   #text-area {
     height: calc(28% - var(--padding));
     min-height: calc(28% - var(--padding));
     max-height: calc(28% - var(--padding));
   }
-  
-  #character {
-    height: 72%;
-    max-height: 72%;
-  }
-  
-  #character img {
-    max-width: 80%;
-  }
+  #character { height: 72%; max-height: 72%; }
+  #character img { max-width: 80%; }
 }
 
-/* 가로가 긴 화면 대응 */
+/* 가로 긴 화면 */
 @media (min-aspect-ratio: 16/9) {
   #text-area {
     height: calc(22% - var(--padding));
     min-height: calc(22% - var(--padding));
     max-height: calc(22% - var(--padding));
   }
-  
-  #character {
-    height: 78%;
-    max-height: 78%;
-  }
-  
-  #character img {
-    max-width: 90%;
-  }
+  #character { height: 78%; max-height: 78%; }
+  #character img { max-width: 90%; }
 }
 
-/* 매우 작은 화면 대응 */
-@media (max-width: 360px) or (max-height: 300px) {
-  .menu {
-    gap: clamp(8px, 1.5vmin, 16px);
-  }
-  
+/* 매우 작은 화면 */
+@media (max-width: 360px), (max-height: 300px) {
+  .menu { gap: clamp(8px, 1.5vmin, 16px); }
   #text-area {
     height: calc(35% - var(--padding));
     min-height: calc(35% - var(--padding));
@@ -329,13 +284,6 @@ button:active {
     font-size: clamp(11px, 2vmin, 20px);
     line-height: 1.4;
   }
-  
-  #character {
-    height: 65%;
-    max-height: 65%;
-  }
-  
-  #character img {
-    max-width: 75%;
-  }
+  #character { height: 65%; max-height: 65%; }
+  #character img { max-width: 75%; }
 }
