@@ -1,65 +1,77 @@
 :root {
-  --text-size: 18px; /* 폰트 크기 줄임 */
-  --line-gap: 6px;
-  --game-width: 480px;  /* 3:4 비율 */
-  --game-height: 640px;
+  /* 뷰포트 기준 반응형 크기 - 텍스트 크기를 더 키움 */
+  --text-size: clamp(14px, 2.5vmin, 28px);
+  --line-gap: clamp(4px, 0.8vmin, 10px);
+  --padding: clamp(8px, 1.5vmin, 20px);
+  --border-width: clamp(1px, 0.2vmin, 3px);
+  --button-padding: clamp(6px, 1vmin, 12px) clamp(12px, 2vmin, 24px);
+  --button-font: clamp(10px, 1.5vmin, 18px);
+  --title-font: clamp(16px, 3vmin, 36px);
+  --popup-font: clamp(12px, 1.8vmin, 22px);
 }
 
 * { 
   box-sizing: border-box; 
-  image-rendering: pixelated; /* 픽셀 아트 느낌 */
+  image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
 }
 
 body {
   margin: 0;
+  padding: 0;
   background: black;
-  font-family: "Malgun Gothic", "Noto Sans KR", sans-serif;
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
   color: white;
   overflow: hidden;
   
-  /* 화면 중앙 정렬 */
   display: flex;
   justify-content: center;
   align-items: center;
+  height: 100vh;
+  width: 100vw;
+  
+  letter-spacing: 0.5px;
+}
+
+/* 게임 컨테이너 - 4:3 비율을 완벽히 유지하면서 화면에 맞게 조정 */
+.game-container {
   width: 100vw;
   height: 100vh;
-}
-
-/* 게임 컨테이너 - 3:4 비율 고정 */
-.game-container {
-  width: var(--game-width);
-  height: var(--game-height);
   background: black;
   position: relative;
-  border: 2px solid #333;
-  
-  /* 화면이 작을 때 스케일 조정 */
-  transform-origin: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-/* 반응형 스케일링 */
-@media (max-width: 500px) {
-  .game-container {
-    transform: scale(0.8);
-  }
+.game-container::before {
+  content: "";
+  display: block;
+  width: min(100vw, calc(100vh * 4 / 3));
+  height: min(100vh, calc(100vw * 3 / 4));
+  border: var(--border-width) solid #333;
+  border-radius: clamp(2px, 0.3vmin, 6px);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: -1;
 }
 
-@media (max-height: 660px) {
-  .game-container {
-    transform: scale(0.7);
-  }
-}
-
-@media (max-width: 400px) or (max-height: 550px) {
-  .game-container {
-    transform: scale(0.6);
-  }
+.game-content {
+  width: min(100vw, calc(100vh * 4 / 3));
+  height: min(100vh, calc(100vw * 3 / 4));
+  position: relative;
+  background: black;
+  border-radius: clamp(2px, 0.3vmin, 6px);
+  overflow: hidden;
 }
 
 /* 숨김 */
-.hidden { display: none; }
+.hidden { 
+  display: none !important; 
+}
 
 /* 메인 메뉴 */
 .menu {
@@ -69,29 +81,37 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 16px;
+  gap: clamp(12px, 2vmin, 24px);
+  padding: var(--padding);
 }
 
 .menu h1 {
-  font-size: 24px;
+  font-size: var(--title-font);
   margin: 0;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+  text-align: center;
 }
 
 /* 버튼 스타일 */
 button {
-  padding: 8px 16px;
-  font-size: 14px;
-  border-radius: 4px;
+  padding: var(--button-padding);
+  font-size: var(--button-font);
+  border-radius: clamp(2px, 0.4vmin, 6px);
   border: none;
   cursor: pointer;
   background: #444;
   color: white;
-  min-width: 120px;
+  min-width: clamp(100px, 15vmin, 200px);
+  font-family: inherit;
+  transition: background-color 0.2s;
 }
 
 button:hover {
   background: #555;
+}
+
+button:active {
+  background: #666;
 }
 
 /* 게임 화면 */
@@ -102,29 +122,57 @@ button:hover {
   height: 100%;
 }
 
-/* 배경/캐릭터 계층 */
+/* 배경 */
 #background {
   position: absolute;
   inset: 0;
   background: #111 center/cover no-repeat;
   z-index: 0;
-  /* 저해상도 느낌을 위한 필터 */
   image-rendering: pixelated;
 }
 
+/* 캐릭터 */
 #character {
   position: absolute;
   bottom: 0;
+  z-index: 1;
+  width: 100%;
+  text-align: center;
+  /* 캐릭터 영역도 고정 비율로 설정 */
+  height: 75%;
+  max-height: 75%;
+  /* 기본 위치는 중앙 */
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1;
+  transition: left 0.5s ease, transform 0.5s ease;
+}
+
+/* 캐릭터 위치별 클래스 */
+#character.pos-left {
+  left: 20%;
+  transform: translateX(-50%);
+}
+
+#character.pos-right {
+  left: 80%;
+  transform: translateX(-50%);
+}
+
+#character.pos-center {
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 #character img {
-  max-height: 480px; /* 게임 높이의 75% */
-  max-width: 100%;
+  /* 캐릭터 크기를 다시 늘림 */
+  max-height: 100%;
+  max-width: 85%;
+  height: auto;
+  width: auto;
   display: block;
   image-rendering: pixelated;
+  margin: 0 auto;
+  object-fit: contain;
 }
 
 /* 페이드 레이어 */
@@ -141,17 +189,20 @@ button:hover {
 /* 텍스트 영역 */
 #text-area {
   position: absolute;
-  top: 15px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 94%;
+  top: var(--padding);
+  left: var(--padding);
+  right: var(--padding);
   z-index: 3;
   font-size: var(--text-size);
-  line-height: 1.5;
+  line-height: 1.6;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
   user-select: none;
-  max-height: 200px; /* 텍스트 영역 제한 */
-  overflow-y: auto;
+  
+  /* 텍스트 영역을 화면 비율에 맞게 고정 */
+  height: calc(25% - var(--padding));
+  min-height: calc(25% - var(--padding));
+  max-height: calc(25% - var(--padding));
+  overflow: visible;
 }
 
 /* 개별 줄 */
@@ -162,28 +213,129 @@ button:hover {
   white-space: pre-wrap;
   word-break: keep-all;
   font-size: var(--text-size);
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  letter-spacing: 0.5px;
 }
 
-/* 팝업 세팅 */
+/* 팝업 */
 .popup {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%,-50%);
-  background: rgba(0,0,0,0.9);
-  border: 2px solid rgba(255,255,255,0.1);
-  padding: 20px;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.95);
+  border: var(--border-width) solid rgba(255, 255, 255, 0.2);
+  padding: clamp(16px, 3vmin, 32px);
   z-index: 10;
-  min-width: 200px;
+  min-width: clamp(200px, 30vmin, 400px);
   text-align: center;
-  border-radius: 4px;
+  border-radius: clamp(4px, 0.5vmin, 8px);
+  backdrop-filter: blur(5px);
 }
 
 .popup h2 {
-  margin: 0 0 15px 0;
-  font-size: 18px;
+  margin: 0 0 clamp(12px, 2vmin, 20px) 0;
+  font-size: var(--popup-font);
 }
 
 .popup button {
-  margin: 5px;
+  margin: clamp(4px, 0.5vmin, 8px);
+}
+
+/* 스크롤바 스타일링 */
+#text-area::-webkit-scrollbar {
+  width: clamp(4px, 0.5vmin, 8px);
+}
+
+#text-area::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: clamp(2px, 0.3vmin, 4px);
+}
+
+#text-area::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: clamp(2px, 0.3vmin, 4px);
+}
+
+#text-area::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* 작은 화면 대응 */
+@media (max-height: 400px) {
+  #text-area {
+    height: calc(30% - var(--padding));
+    min-height: calc(30% - var(--padding));
+    max-height: calc(30% - var(--padding));
+    font-size: clamp(12px, 2.2vmin, 24px);
+  }
+  
+  #character {
+    height: 70%;
+    max-height: 70%;
+  }
+  
+  #character img {
+    max-width: 80%;
+  }
+}
+
+/* 세로가 긴 화면 (모바일) 대응 */
+@media (max-aspect-ratio: 4/3) {
+  #text-area {
+    height: calc(28% - var(--padding));
+    min-height: calc(28% - var(--padding));
+    max-height: calc(28% - var(--padding));
+  }
+  
+  #character {
+    height: 72%;
+    max-height: 72%;
+  }
+  
+  #character img {
+    max-width: 80%;
+  }
+}
+
+/* 가로가 긴 화면 대응 */
+@media (min-aspect-ratio: 16/9) {
+  #text-area {
+    height: calc(22% - var(--padding));
+    min-height: calc(22% - var(--padding));
+    max-height: calc(22% - var(--padding));
+  }
+  
+  #character {
+    height: 78%;
+    max-height: 78%;
+  }
+  
+  #character img {
+    max-width: 90%;
+  }
+}
+
+/* 매우 작은 화면 대응 */
+@media (max-width: 360px) or (max-height: 300px) {
+  .menu {
+    gap: clamp(8px, 1.5vmin, 16px);
+  }
+  
+  #text-area {
+    height: calc(35% - var(--padding));
+    min-height: calc(35% - var(--padding));
+    max-height: calc(35% - var(--padding));
+    font-size: clamp(11px, 2vmin, 20px);
+    line-height: 1.4;
+  }
+  
+  #character {
+    height: 65%;
+    max-height: 65%;
+  }
+  
+  #character img {
+    max-width: 75%;
+  }
 }

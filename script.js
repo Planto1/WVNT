@@ -1,6 +1,6 @@
-/* 비주얼노벨 게임 엔진 - 타이핑 효과 추가 버전 */
+/* 비주얼노벨 게임 엔진 - 반응형 버전 */
 
-///// 상태 변수
+// 상태 변수
 let sceneIndex = {};
 let currentChapter = null;
 let currentSceneIndex = 0;
@@ -13,10 +13,10 @@ let isTyping = false;
 let skipRequested = false;
 let typingTimeoutId = null;
 
-const CHAR_LIMIT = 200;
-const TYPING_SPEED = 30; // 타이핑 속도 (밀리초)
+const CHAR_LIMIT = 400; // 텍스트 제한을 더 늘림
+const TYPING_SPEED = 20; // 타이핑 속도를 더 빠르게
 
-///// DOM 요소
+// DOM 요소
 const elMain = document.getElementById("main-menu");
 const elGame = document.getElementById("game-screen");
 const elBackground = document.getElementById("background");
@@ -29,7 +29,7 @@ const btnSettings = document.getElementById("btn-settings");
 const btnCloseSettings = document.getElementById("btn-close-settings");
 const btnExitToMenu = document.getElementById("btn-exit-to-menu");
 
-///// 이벤트 리스너
+// 이벤트 리스너
 btnStart.addEventListener("click", (e) => {
   e.stopPropagation();
   startGame();
@@ -53,13 +53,11 @@ btnExitToMenu.addEventListener("click", (e) => {
   resetGame();
 });
 
-// 게임 화면에서만 클릭 처리
 elGame.addEventListener("click", (e) => {
   e.stopPropagation();
   if (elGame.classList.contains("hidden")) return;
   if (!elSettings.classList.contains("hidden")) return;
   
-  // 타이핑 중이면 스킵, 아니면 다음 진행
   if (isTyping) {
     skipRequested = true;
   } else {
@@ -67,7 +65,7 @@ elGame.addEventListener("click", (e) => {
   }
 });
 
-///// 유틸리티 함수
+// 유틸리티 함수
 function setFadeOpacity(value, instant = false) {
   if (!elFade) return;
   if (instant) {
@@ -90,7 +88,6 @@ function resetGame() {
   isTyping = false;
   skipRequested = false;
   
-  // 타이핑 타임아웃 정리
   if (typingTimeoutId) {
     clearTimeout(typingTimeoutId);
     typingTimeoutId = null;
@@ -98,9 +95,11 @@ function resetGame() {
   
   elTextArea.innerHTML = "";
   elCharacter.innerHTML = "";
+  // 캐릭터 위치 클래스도 초기화
+  elCharacter.classList.remove('pos-left', 'pos-center', 'pos-right');
 }
 
-///// 씬 관리
+// 씬 관리
 async function loadSceneIndex() {
   try {
     const res = await fetch("scenes.json");
@@ -108,7 +107,11 @@ async function loadSceneIndex() {
     sceneIndex = await res.json();
   } catch (err) {
     console.error("scenes.json 로드 실패:", err);
-    sceneIndex = {};
+    // 데모 데이터 사용
+    sceneIndex = {
+      "01": ["01_001.json", "01_002.json"],
+      "02": ["02_001.json"]
+    };
   }
 }
 
@@ -116,7 +119,6 @@ async function loadScript(chapterKey, sceneIdx) {
   const fileName = sceneIndex?.[chapterKey]?.[sceneIdx];
   
   if (!fileName) {
-    // 다음 챕터 시도
     const chapters = Object.keys(sceneIndex).sort();
     const idx = chapters.indexOf(chapterKey);
     const nextChapter = chapters[idx + 1];
@@ -127,7 +129,6 @@ async function loadScript(chapterKey, sceneIdx) {
       await loadScript(currentChapter, currentSceneIndex);
       return;
     } else {
-      // 게임 종료
       elGame.classList.add("hidden");
       elMain.classList.remove("hidden");
       resetGame();
@@ -140,35 +141,42 @@ async function loadScript(chapterKey, sceneIdx) {
     if (!res.ok) throw new Error("파일 없음: " + fileName);
     scriptData = await res.json();
 
-    // 씬 초기화
     lineIndex = 0;
     charCount = 0;
     firstLineOfScene = true;
     
-    // 배경/캐릭터 미리 설정
     const firstLine = scriptData.lines?.[0];
     if (firstLine) {
       if (firstLine.bg) elBackground.style.backgroundImage = `url(${firstLine.bg})`;
-      if (firstLine.char) elCharacter.innerHTML = `<img src="${firstLine.char}" alt="char">`;
-      else if (firstLine.char === "") elCharacter.innerHTML = "";
+      if (firstLine.char) {
+        elCharacter.innerHTML = `<img src="${firstLine.char}" alt="char">`;
+        // 첫 번째 라인의 위치 설정
+        if (firstLine.pos) {
+          elCharacter.classList.remove('pos-left', 'pos-center', 'pos-right');
+          elCharacter.classList.add(`pos-${firstLine.pos}`);
+        } else {
+          elCharacter.classList.add('pos-center');
+        }
+      } else if (firstLine.char === "") {
+        elCharacter.innerHTML = "";
+      }
     } else {
       elCharacter.innerHTML = "";
     }
 
-    setFadeOpacity("1", true); // 검정 상태로 시작
+    setFadeOpacity("1", true);
     elTextArea.innerHTML = "";
     
     await showNext();
     
   } catch (err) {
     console.error("씬 로드 실패:", err);
-    // 다음 씬으로 스킵
     currentSceneIndex++;
     await loadScript(currentChapter, currentSceneIndex);
   }
 }
 
-///// 게임 로직
+// 게임 로직
 async function startGame() {
   elMain.classList.add("hidden");
   elGame.classList.remove("hidden");
@@ -179,7 +187,7 @@ async function startGame() {
   const chapters = Object.keys(sceneIndex).sort();
   
   if (chapters.length === 0) {
-    console.error("scenes.json이 비어있음");
+    console.error("씬 데이터가 없습니다");
     elGame.classList.add("hidden");
     elMain.classList.remove("hidden");
     return;
@@ -206,21 +214,34 @@ async function showNext() {
 
     const line = scriptData.lines[lineIndex];
 
-    // 배경/캐릭터 업데이트
+    // 배경 업데이트
     if (line.bg) elBackground.style.backgroundImage = `url(${line.bg})`;
+    
+    // 캐릭터 업데이트 (이미지와 위치)
     if (line.char) {
       elCharacter.innerHTML = `<img src="${line.char}" alt="char">`;
     } else if (line.char === "") {
       elCharacter.innerHTML = "";
     }
+    
+    // 캐릭터 위치 설정 (pos 속성)
+    if (line.pos) {
+      // 기존 위치 클래스 제거
+      elCharacter.classList.remove('pos-left', 'pos-center', 'pos-right');
+      // 새로운 위치 클래스 추가
+      elCharacter.classList.add(`pos-${line.pos}`);
+    } else if (!elCharacter.classList.contains('pos-left') && 
+               !elCharacter.classList.contains('pos-right') && 
+               !elCharacter.classList.contains('pos-center')) {
+      // 위치가 지정되지 않은 경우 기본값으로 중앙 설정
+      elCharacter.classList.add('pos-center');
+    }
 
-    // 첫 줄이면 fadeIn
     if (firstLineOfScene) {
       await fadeIn();
       firstLineOfScene = false;
     }
 
-    // 텍스트 처리
     const txt = (line.text || "").toString();
     if (charCount + txt.length > CHAR_LIMIT) {
       elTextArea.innerHTML = "";
@@ -240,24 +261,20 @@ async function showNext() {
   }
 }
 
-// 타이핑 효과 함수 (애니메이션 효과 제거)
 function typeText(element, text) {
   return new Promise((resolve) => {
     isTyping = true;
     skipRequested = false;
     element.textContent = "";
     
-    // 애니메이션 효과 제거 - 바로 보이게 설정
     element.style.opacity = "1";
     element.style.transform = "none";
 
-    // 이전 타이핑 타임아웃 정리
     if (typingTimeoutId) {
       clearTimeout(typingTimeoutId);
       typingTimeoutId = null;
     }
 
-    // 빈 텍스트 처리
     if (!text || text.trim() === "") {
       isTyping = false;
       resolve();
@@ -267,15 +284,12 @@ function typeText(element, text) {
     let currentIndex = 0;
     
     function typeNextChar() {
-      // 스킵이 요청되었을 때
       if (skipRequested) {
-        // 타임아웃 정리
         if (typingTimeoutId) {
           clearTimeout(typingTimeoutId);
           typingTimeoutId = null;
         }
         
-        // 전체 텍스트를 한번에 표시
         element.textContent = text;
         isTyping = false;
         skipRequested = false;
@@ -283,7 +297,6 @@ function typeText(element, text) {
         return;
       }
 
-      // 모든 글자를 다 쳤을 때
       if (currentIndex >= text.length) {
         if (typingTimeoutId) {
           clearTimeout(typingTimeoutId);
@@ -294,26 +307,22 @@ function typeText(element, text) {
         return;
       }
 
-      // 현재 글자 추가
       const char = text.charAt(currentIndex);
       element.textContent += char;
       currentIndex++;
       
-      // 구두점에서 약간 더 긴 대기시간
       let delay = TYPING_SPEED;
       
       if (char === '.' || char === '!' || char === '?' || 
           char === '…' || char === '。') {
-        delay = TYPING_SPEED * 3; // 구두점에서 3배 더 대기
+        delay = TYPING_SPEED * 3;
       } else if (char === ',' || char === '、') {
-        delay = TYPING_SPEED * 2; // 쉼표에서 2배 대기
+        delay = TYPING_SPEED * 2;
       }
 
-      // 다음 글자 예약
       typingTimeoutId = setTimeout(typeNextChar, delay);
     }
     
-    // 타이핑 시작
     typeNextChar();
   });
 }

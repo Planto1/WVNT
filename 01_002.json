@@ -3,6 +3,10 @@
     { "bg": "bg/bg_lib_nig.jpg",
       "text": "방으로 돌아왔다..." },
     { "text": "창밖은 여전히 조용하다." },
+    { "bg": "bg/bg_lib_asa.jpg", "char": "char/char_kuro.png", "pos": "left", "text": "왼쪽에서 말하고 있어요" },
+    { "char": "char/char_kuro.png", "pos": "center", "text": "이제 중앙으로 이동했어요" },
+    { "char": "char/char_kuro.png", "pos": "right", "text": "오른쪽으로 이동했습니다" },
+    { "char": "", "text": "캐릭터가 사라졌어요" },
     { "end": true }
   ]
 }

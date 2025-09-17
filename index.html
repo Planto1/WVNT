@@ -7,226 +7,32 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
-  <style>
-:root {
-  --text-size: 18px; /* 폰트 크기 정상으로 */
-  --line-gap: 6px;
-  --game-width: 640px;  /* 정상 해상도 4:3 비율 */
-  --game-height: 480px;
-}
-
-* { 
-  box-sizing: border-box; 
-  image-rendering: pixelated; /* 픽셀 아트 느낌 */
-  image-rendering: -moz-crisp-edges;
-  image-rendering: crisp-edges;
-}
-
-body {
-  margin: 0;
-  background: black;
-  font-family: 'Share Tech Mono', 'Courier New', monospace;
-  color: white;
-  overflow: hidden;
-  
-  /* 화면 중앙 정렬 */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100vw;
-  height: 100vh;
-  
-  /* 픽셀 폰트 느낌을 위한 설정 */
-  letter-spacing: 0.5px;
-}
-
-/* 게임 컨테이너 - 3:4 비율 고정 */
-.game-container {
-  width: var(--game-width);
-  height: var(--game-height);
-  background: black;
-  position: relative;
-  border: 2px solid #333;
-  
-  /* 화면이 작을 때 스케일 조정 */
-  transform-origin: center;
-}
-
-/* 반응형 스케일링 */
-@media (max-width: 660px) {
-  .game-container {
-    transform: scale(0.8);
-  }
-}
-
-@media (max-height: 500px) {
-  .game-container {
-    transform: scale(0.7);
-  }
-}
-
-@media (max-width: 500px) or (max-height: 400px) {
-  .game-container {
-    transform: scale(0.6);
-  }
-}
-
-/* 숨김 */
-.hidden { display: none; }
-
-/* 메인 메뉴 */
-.menu {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 16px;
-}
-
-.menu h1 {
-  font-size: 24px;
-  margin: 0;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-}
-
-/* 버튼 스타일 */
-button {
-  padding: 8px 16px;
-  font-size: 14px;
-  border-radius: 4px;
-  border: none;
-  cursor: pointer;
-  background: #444;
-  color: white;
-  min-width: 120px;
-}
-
-button:hover {
-  background: #555;
-}
-
-/* 게임 화면 */
-#game-screen {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-/* 배경/캐릭터 계층 */
-#background {
-  position: absolute;
-  inset: 0;
-  background: #111 center/cover no-repeat;
-  z-index: 0;
-  /* 저해상도 느낌을 위한 필터 */
-  image-rendering: pixelated;
-}
-
-#character {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1;
-}
-
-#character img {
-  max-height: 360px; /* 게임 높이의 75% */
-  max-width: 100%;
-  display: block;
-  image-rendering: pixelated;
-}
-
-/* 페이드 레이어 */
-#fadeLayer {
-  position: absolute;
-  inset: 0;
-  background: black;
-  opacity: 0;
-  transition: opacity 1s ease;
-  z-index: 2;
-  pointer-events: none;
-}
-
-/* 텍스트 영역 */
-#text-area {
-  position: absolute;
-  top: 15px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 94%;
-  z-index: 3;
-  font-size: var(--text-size);
-  line-height: 1.5;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
-  user-select: none;
-  max-height: 200px; /* 텍스트 영역 제한 */
-  overflow-y: auto;
-}
-
-/* 개별 줄 */
-.line {
-  opacity: 1;
-  transform: none;
-  margin: 0 0 var(--line-gap) 0;
-  white-space: pre-wrap;
-  word-break: keep-all;
-  font-size: var(--text-size);
-  font-family: 'Share Tech Mono', 'Courier New', monospace;
-  letter-spacing: 0.5px;
-}
-
-/* 팝업 세팅 */
-.popup {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%,-50%);
-  background: rgba(0,0,0,0.9);
-  border: 2px solid rgba(255,255,255,0.1);
-  padding: 20px;
-  z-index: 10;
-  min-width: 200px;
-  text-align: center;
-  border-radius: 4px;
-}
-
-.popup h2 {
-  margin: 0 0 15px 0;
-  font-size: 18px;
-}
-
-.popup button {
-  margin: 5px;
-}
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- 4:3 비율 게임 컨테이너 -->
   <div class="game-container">
-    <!-- 메인 메뉴 (게임 시작, 세팅) -->
-    <div id="main-menu" class="menu">
-      <h1>비주얼노벨</h1>
-      <button id="btn-start">게임 시작</button>
-      <button id="btn-settings">세팅</button>
-    </div>
+    <div class="game-content">
+      <!-- 메인 메뉴 -->
+      <div id="main-menu" class="menu">
+        <h1>비주얼노벨</h1>
+        <button id="btn-start">게임 시작</button>
+        <button id="btn-settings">세팅</button>
+      </div>
 
-    <!-- 게임 화면 -->
-    <div id="game-screen" class="hidden">
-      <div id="background"></div>
-      <div id="character"></div>
-      <div id="fadeLayer"></div>
-      <div id="text-area"></div>
-    </div>
+      <!-- 게임 화면 -->
+      <div id="game-screen" class="hidden">
+        <div id="background"></div>
+        <div id="character"></div>
+        <div id="fadeLayer"></div>
+        <div id="text-area"></div>
+      </div>
 
-    <!-- 세팅창 (간단) -->
-    <div id="settings" class="popup hidden">
-      <h2>세팅</h2>
-      <button id="btn-close-settings">닫기</button>
-      <button id="btn-exit-to-menu">메인으로 돌아가기</button>
+      <!-- 세팅창 -->
+      <div id="settings" class="popup hidden">
+        <h2>세팅</h2>
+        <button id="btn-close-settings">닫기</button>
+        <button id="btn-exit-to-menu">메인으로 돌아가기</button>
+      </div>
     </div>
   </div>
 
