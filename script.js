@@ -65,6 +65,45 @@ elGame.addEventListener("click", (e) => {
   }
 });
 
+// 화면 흔들림 함수
+function performShake(intensity) {
+  return new Promise((resolve) => {
+    const gameContent = document.querySelector('.game-content');
+    if (!gameContent) {
+      resolve();
+      return;
+    }
+
+    // 기존 흔들림 클래스 제거
+    gameContent.classList.remove('shake-1-25', 'shake-26-50', 'shake-51-75', 'shake-76-100');
+    
+    // 강도에 따라 적절한 클래스 선택
+    let shakeClass;
+    if (intensity <= 25) {
+      shakeClass = 'shake-1-25';
+    } else if (intensity <= 50) {
+      shakeClass = 'shake-26-50';
+    } else if (intensity <= 75) {
+      shakeClass = 'shake-51-75';
+    } else {
+      shakeClass = 'shake-76-100';
+    }
+    
+    // 흔들림 시작
+    gameContent.classList.add(shakeClass);
+    
+    // 애니메이션 완료 후 클래스 제거 (충격 효과에 맞춘 지속시간)
+    const duration = shakeClass === 'shake-1-25' ? 400 : 
+                    shakeClass === 'shake-26-50' ? 600 :
+                    shakeClass === 'shake-51-75' ? 800 : 1000;
+    
+    setTimeout(() => {
+      gameContent.classList.remove(shakeClass);
+      resolve();
+    }, duration);
+  });
+}
+
 // 유틸리티 함수
 function setFadeOpacity(value, instant = false) {
   if (!elFade) return;
@@ -213,6 +252,25 @@ async function showNext() {
     }
 
     const line = scriptData.lines[lineIndex];
+
+    // 강제 초기화 처리
+    if (line.clear === true) {
+      elTextArea.innerHTML = "";
+      charCount = 0;
+      lineIndex++;
+      busy = false;
+      await showNext(); // 다음 라인으로 즉시 진행
+      return;
+    }
+
+    // 화면 흔들림 처리
+    if (line.shake && typeof line.shake === 'number' && line.shake >= 1 && line.shake <= 100) {
+      await performShake(line.shake);
+      lineIndex++;
+      busy = false;
+      await showNext(); // 다음 라인으로 즉시 진행
+      return;
+    }
 
     // 배경 업데이트
     if (line.bg) elBackground.style.backgroundImage = `url(${line.bg})`;
