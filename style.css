@@ -1,8 +1,8 @@
 :root {
   /* 뷰포트 기준 반응형 크기 - 텍스트 크기를 더 키움 */
-  --text-size: clamp(14px, 2.5vmin, 28px);
+  --text-size: clamp(10px, 3vmin, 32px);
   --line-gap: clamp(4px, 0.8vmin, 10px);
-  --padding: clamp(8px, 1.5vmin, 20px);
+  --padding: clamp(20px, 4vmin, 50px);
   --border-width: clamp(1px, 0.2vmin, 3px);
   --button-padding: clamp(6px, 1vmin, 12px) clamp(12px, 2vmin, 24px);
   --button-font: clamp(10px, 1.5vmin, 18px);
@@ -177,8 +177,8 @@ button:active { background: #666; }
 #text-area {
   position: absolute;
   top: var(--padding);
-  left: var(--padding);
-  right: var(--padding);
+  left: calc(var(--padding) * 2);
+  right: calc(var(--padding) * 2);
   z-index: 3;
   font-size: var(--text-size);
   line-height: 1.6;
@@ -187,10 +187,12 @@ button:active { background: #666; }
   /* 텍스트 선택/드래그 차단 */
   user-select: none;
 
-  height: calc(25% - var(--padding));
-  min-height: calc(25% - var(--padding));
-  max-height: calc(25% - var(--padding));
+  height: calc(22% - var(--padding));
+  min-height: calc(22% - var(--padding));
+  max-height: calc(22% - var(--padding));
   overflow: visible;
+  padding-left: 2vw;
+  padding-right: 2vw;
 }
 
 /* 개별 줄 */
@@ -281,11 +283,18 @@ button:active { background: #666; }
     height: calc(35% - var(--padding));
     min-height: calc(35% - var(--padding));
     max-height: calc(35% - var(--padding));
-    font-size: clamp(11px, 2vmin, 20px);
+    font-size: clamp(10px, 2vw, 14px);
     line-height: 1.4;
   }
   #character { height: 65%; max-height: 65%; }
   #character img { max-width: 75%; }
+}
+
+/* 모바일 환경에서 텍스트 더 작게 */
+@media (max-width: 480px) {
+  :root {
+    --text-size: clamp(8px, 2vw, 14px);
+  }
 }
 
 /* 화면 흔들림 애니메이션 - 충격 효과 */

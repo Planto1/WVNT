@@ -13,8 +13,8 @@ let isTyping = false;
 let skipRequested = false;
 let typingTimeoutId = null;
 
-const CHAR_LIMIT = 250; // 텍스트 제한을 더 늘림
-const TYPING_SPEED = 20; // 타이핑 속도를 더 빠르게
+const CHAR_LIMIT = 200; // 텍스트 제한을 더 늘림
+const TYPING_SPEED = 15; // 타이핑 속도를 더 빠르게
 
 // DOM 요소
 const elMain = document.getElementById("main-menu");
