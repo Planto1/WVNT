@@ -13,6 +13,10 @@ let isTyping = false;
 let skipRequested = false;
 let typingTimeoutId = null;
 
+// 오디오 관리 변수
+let audioElements = new Map(); // 오디오 파일 캐시
+let currentAudio = null; // 현재 재생 중인 오디오
+
 const CHAR_LIMIT = 200; // 텍스트 제한을 더 늘림
 const TYPING_SPEED = 15; // 타이핑 속도를 더 빠르게
 
@@ -65,7 +69,101 @@ elGame.addEventListener("click", (e) => {
   }
 });
 
-// 화면 흔들림 함수
+// 키보드 이벤트 리스너 추가
+document.addEventListener("keydown", (e) => {
+  // 게임 화면이 보이고 설정창이 닫혀있을 때만 엔터키 처리
+  if (!elGame.classList.contains("hidden") && elSettings.classList.contains("hidden")) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (isTyping) {
+        skipRequested = true;
+      } else {
+        requestNext();
+      }
+    }
+  }
+});
+
+// 오디오 관리 함수
+function playAudio(audioPath, loops = 1) {
+  return new Promise((resolve) => {
+    try {
+      // 기존 오디오가 재생 중이면 정지
+      if (currentAudio && !currentAudio.paused) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+      }
+
+      // 캐시에서 오디오 엘리먼트 찾기 또는 생성
+      let audio;
+      if (audioElements.has(audioPath)) {
+        audio = audioElements.get(audioPath);
+      } else {
+        audio = new Audio(audioPath);
+        audioElements.set(audioPath, audio);
+        
+        // 로드 오류 처리
+        audio.onerror = () => {
+          console.error(`오디오 로드 실패: ${audioPath}`);
+          resolve();
+        };
+      }
+
+      currentAudio = audio;
+      audio.currentTime = 0;
+
+      // 무한 반복 설정
+      if (loops === -1) {
+        audio.loop = true;
+        audio.play().then(() => {
+          resolve();
+        }).catch((error) => {
+          console.error(`오디오 재생 실패: ${audioPath}`, error);
+          resolve();
+        });
+      } else {
+        // 지정된 횟수만큼 반복
+        audio.loop = false;
+        let playCount = 0;
+        
+        const playNext = () => {
+          if (playCount < loops) {
+            audio.currentTime = 0;
+            audio.play().then(() => {
+              playCount++;
+            }).catch((error) => {
+              console.error(`오디오 재생 실패: ${audioPath}`, error);
+              resolve();
+            });
+          } else {
+            resolve();
+          }
+        };
+
+        audio.onended = () => {
+          if (playCount < loops) {
+            playNext();
+          } else {
+            resolve();
+          }
+        };
+
+        playNext();
+      }
+    } catch (error) {
+      console.error(`오디오 처리 오류: ${audioPath}`, error);
+      resolve();
+    }
+  });
+}
+
+function stopAudio() {
+  if (currentAudio && !currentAudio.paused) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+    currentAudio.loop = false;
+  }
+}
 function performShake(intensity) {
   return new Promise((resolve) => {
     const gameContent = document.querySelector('.game-content');
@@ -131,6 +229,9 @@ function resetGame() {
     clearTimeout(typingTimeoutId);
     typingTimeoutId = null;
   }
+  
+  // 오디오 정지
+  stopAudio();
   
   elTextArea.innerHTML = "";
   elCharacter.innerHTML = "";
@@ -266,6 +367,16 @@ async function showNext() {
     // 화면 흔들림 처리
     if (line.shake && typeof line.shake === 'number' && line.shake >= 1 && line.shake <= 100) {
       await performShake(line.shake);
+      lineIndex++;
+      busy = false;
+      await showNext(); // 다음 라인으로 즉시 진행
+      return;
+    }
+
+    // 오디오 재생 처리
+    if (line.audio) {
+      const loops = line.loops !== undefined ? line.loops : 1;
+      await playAudio(line.audio, loops);
       lineIndex++;
       busy = false;
       await showNext(); // 다음 라인으로 즉시 진행

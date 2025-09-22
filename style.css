@@ -248,7 +248,6 @@ button:active { background: #666; }
     height: calc(30% - var(--padding));
     min-height: calc(30% - var(--padding));
     max-height: calc(30% - var(--padding));
-    font-size: clamp(12px, 2.2vmin, 24px);
   }
   #character { height: 70%; max-height: 70%; }
   #character img { max-width: 80%; }
@@ -283,18 +282,10 @@ button:active { background: #666; }
     height: calc(35% - var(--padding));
     min-height: calc(35% - var(--padding));
     max-height: calc(35% - var(--padding));
-    font-size: clamp(10px, 2vw, 14px);
     line-height: 1.4;
   }
   #character { height: 65%; max-height: 65%; }
   #character img { max-width: 75%; }
-}
-
-/* 모바일 환경에서 텍스트 더 작게 */
-@media (max-width: 480px) {
-  :root {
-    --text-size: clamp(8px, 2vw, 14px);
-  }
 }
 
 /* 화면 흔들림 애니메이션 - 충격 효과 */
