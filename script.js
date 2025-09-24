@@ -157,12 +157,75 @@ function playAudio(audioPath, loops = 1) {
   });
 }
 
-function stopAudio() {
-  if (currentAudio && !currentAudio.paused) {
-    currentAudio.pause();
-    currentAudio.currentTime = 0;
-    currentAudio.loop = false;
-  }
+// 배경 전환 함수
+async function changeBackground(newBgPath) {
+  return new Promise((resolve) => {
+    if (!elBackground) {
+      resolve();
+      return;
+    }
+
+    const currentBg = elBackground.style.backgroundImage;
+    const newBg = `url(${newBgPath})`;
+    
+    // 같은 배경이면 전환하지 않음
+    if (currentBg === newBg) {
+      resolve();
+      return;
+    }
+
+    // 새 배경 이미지 미리 로드
+    const img = new Image();
+    img.onload = () => {
+      // 새 배경용 임시 div 생성
+      const newBgDiv = document.createElement('div');
+      newBgDiv.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: ${newBg};
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        opacity: 0;
+        transition: opacity 1s ease-in-out;
+        z-index: 0;
+        image-rendering: pixelated;
+        image-rendering: -moz-crisp-edges;
+        image-rendering: crisp-edges;
+      `;
+      
+      // 기존 배경 div에 직접 추가
+      elBackground.appendChild(newBgDiv);
+      
+      // 강제 리플로우 후 페이드 인 시작
+      newBgDiv.offsetHeight;
+      
+      requestAnimationFrame(() => {
+        newBgDiv.style.opacity = '1';
+        
+        setTimeout(() => {
+          // 기존 배경을 새 배경으로 교체
+          elBackground.style.backgroundImage = newBg;
+          
+          // 임시 div 제거
+          newBgDiv.remove();
+          resolve();
+        }, 1000);
+      });
+    };
+    
+    img.onerror = () => {
+      console.error(`배경 이미지 로드 실패: ${newBgPath}`);
+      // 오류가 발생해도 게임 진행
+      elBackground.style.backgroundImage = newBg;
+      resolve();
+    };
+    
+    img.src = newBgPath;
+  });
 }
 function performShake(intensity) {
   return new Promise((resolve) => {
@@ -287,7 +350,10 @@ async function loadScript(chapterKey, sceneIdx) {
     
     const firstLine = scriptData.lines?.[0];
     if (firstLine) {
-      if (firstLine.bg) elBackground.style.backgroundImage = `url(${firstLine.bg})`;
+      if (firstLine.bg) {
+        // 첫 번째 씬은 즉시 배경 설정 (전환 효과 없음)
+        elBackground.style.backgroundImage = `url(${firstLine.bg})`;
+      }
       if (firstLine.char) {
         elCharacter.innerHTML = `<img src="${firstLine.char}" alt="char">`;
         // 첫 번째 라인의 위치 설정
@@ -383,8 +449,25 @@ async function showNext() {
       return;
     }
 
-    // 배경 업데이트
-    if (line.bg) elBackground.style.backgroundImage = `url(${line.bg})`;
+    // 오디오 정지 처리 - 음악만 멈추고 즉시 다음으로
+    if (line.stopAudio === true) {
+      // 현재 재생 중인 오디오 정지
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        currentAudio.loop = false;
+        currentAudio = null;
+      }
+      lineIndex++;
+      busy = false;
+      await showNext(); // 즉시 다음 라인으로
+      return;
+    }
+
+    // 배경 업데이트 (자연스러운 전환)
+    if (line.bg) {
+      await changeBackground(line.bg);
+    }
     
     // 캐릭터 업데이트 (이미지와 위치)
     if (line.char) {
