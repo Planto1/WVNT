@@ -25,13 +25,34 @@
         <div id="character"></div>
         <div id="fadeLayer"></div>
         <div id="text-area"></div>
+        
+        <!-- 하단 메뉴바 -->
+        <div id="bottom-menu">
+          <span id="btn-save" class="menu-text" title="저장">SAVE</span>
+          <span id="btn-load" class="menu-text" title="불러오기">LOAD</span>
+          <span id="btn-auto" class="menu-text" title="자동진행">AUTO</span>
+          <span id="btn-skip" class="menu-text" title="스킵">SKIP</span>
+          <span id="btn-config" class="menu-text" title="설정">CONFIG</span>
+          <span id="btn-hide" class="menu-text" title="창 숨기기">HIDE.W</span>
+        </div>
       </div>
 
       <!-- 세팅창 -->
       <div id="settings" class="popup hidden">
         <h2>세팅</h2>
-        <button id="btn-close-settings">닫기</button>
-        <button id="btn-exit-to-menu">메인으로 돌아가기</button>
+        
+        <div class="setting-item">
+          <label for="auto-speed">AUTO 속도</label>
+          <div class="slider-container">
+            <input type="range" id="auto-speed" min="500" max="3000" step="100" value="1500">
+            <span id="auto-speed-value">1.5초</span>
+          </div>
+        </div>
+        
+        <div class="button-group">
+          <button id="btn-close-settings">닫기</button>
+          <button id="btn-exit-to-menu">메인으로 돌아가기</button>
+        </div>
       </div>
     </div>
   </div>

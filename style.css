@@ -129,7 +129,7 @@ button:active { background: #666; }
 /* 캐릭터 */
 #character {
   position: absolute;
-  bottom: 0;
+  bottom: clamp(32px, 5vmin, 60px); /* 하단 메뉴바 높이만큼 띄움 */
   z-index: 1;
   width: 100%;
   text-align: center;
@@ -193,6 +193,71 @@ button:active { background: #666; }
   overflow: visible;
   padding-left: 2vw;
   padding-right: 2vw;
+  transition: opacity 0.3s ease;
+}
+
+/* 하단 메뉴바 */
+#bottom-menu {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: clamp(32px, 5vmin, 60px);
+  z-index: 4;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(16px, 3vmin, 40px);
+  padding: 0 clamp(10px, 2vmin, 20px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+#bottom-menu.hidden-ui {
+  opacity: 0;
+  transform: translateY(100%);
+  pointer-events: none;
+}
+
+.menu-text {
+  font-size: clamp(10px, 1.5vmin, 18px);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: 1px;
+  transition: all 0.2s ease;
+  user-select: none;
+  padding: clamp(4px, 0.8vmin, 8px) clamp(6px, 1vmin, 12px);
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+  position: relative;
+}
+
+.menu-text:hover {
+  color: rgba(255, 255, 255, 1);
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.5), 2px 2px 4px rgba(0,0,0,0.8);
+  transform: scale(1.05);
+}
+
+.menu-text:active {
+  transform: scale(0.95);
+  color: rgba(200, 200, 255, 1);
+  text-shadow: 0 0 12px rgba(200, 200, 255, 0.8), 2px 2px 4px rgba(0,0,0,0.8);
+}
+
+.menu-text.active {
+  color: rgba(100, 150, 255, 1);
+  text-shadow: 0 0 10px rgba(100, 150, 255, 0.6), 2px 2px 4px rgba(0,0,0,0.8);
+}
+
+.menu-text.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2px;
+  background: rgba(100, 150, 255, 0.8);
+  box-shadow: 0 0 6px rgba(100, 150, 255, 0.6);
 }
 
 /* 개별 줄 */
@@ -217,18 +282,85 @@ button:active { background: #666; }
   border: var(--border-width) solid rgba(255, 255, 255, 0.2);
   padding: clamp(16px, 3vmin, 32px);
   z-index: 10;
-  min-width: clamp(200px, 30vmin, 400px);
+  min-width: clamp(250px, 35vmin, 450px);
   text-align: center;
   border-radius: clamp(4px, 0.5vmin, 8px);
   backdrop-filter: blur(5px);
 }
 
 .popup h2 {
-  margin: 0 0 clamp(12px, 2vmin, 20px) 0;
+  margin: 0 0 clamp(16px, 3vmin, 24px) 0;
   font-size: var(--popup-font);
 }
 
-.popup button { margin: clamp(4px, 0.5vmin, 8px); }
+.setting-item {
+  margin: clamp(12px, 2vmin, 20px) 0;
+  text-align: left;
+}
+
+.setting-item label {
+  display: block;
+  margin-bottom: clamp(6px, 1vmin, 10px);
+  font-size: clamp(10px, 1.5vmin, 16px);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 1.5vmin, 16px);
+}
+
+.slider-container input[type="range"] {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: clamp(4px, 0.6vmin, 8px);
+  background: rgba(255, 255, 255, 0.2);
+  outline: none;
+  border-radius: clamp(2px, 0.3vmin, 4px);
+}
+
+.slider-container input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: clamp(14px, 2vmin, 20px);
+  height: clamp(14px, 2vmin, 20px);
+  background: rgba(100, 150, 255, 0.9);
+  cursor: pointer;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(100, 150, 255, 0.5);
+}
+
+.slider-container input[type="range"]::-moz-range-thumb {
+  width: clamp(14px, 2vmin, 20px);
+  height: clamp(14px, 2vmin, 20px);
+  background: rgba(100, 150, 255, 0.9);
+  cursor: pointer;
+  border-radius: 50%;
+  border: none;
+  box-shadow: 0 0 8px rgba(100, 150, 255, 0.5);
+}
+
+.slider-container span {
+  font-size: clamp(9px, 1.3vmin, 14px);
+  color: rgba(255, 255, 255, 0.8);
+  min-width: clamp(40px, 6vmin, 60px);
+  text-align: right;
+}
+
+.button-group {
+  margin-top: clamp(16px, 3vmin, 24px);
+  display: flex;
+  gap: clamp(6px, 1vmin, 12px);
+  justify-content: center;
+}
+
+.popup button { 
+  margin: 0;
+  flex: 1;
+  max-width: clamp(120px, 18vmin, 180px);
+}
 
 /* 스크롤바 */
 #text-area::-webkit-scrollbar { width: clamp(4px, 0.5vmin, 8px); }
@@ -251,6 +383,14 @@ button:active { background: #666; }
   }
   #character { height: 70%; max-height: 70%; }
   #character img { max-width: 80%; }
+  #bottom-menu {
+    height: clamp(28px, 4vmin, 50px);
+    gap: clamp(8px, 1.5vmin, 24px);
+  }
+  .menu-text {
+    font-size: clamp(8px, 1.2vmin, 14px);
+    padding: clamp(3px, 0.6vmin, 6px) clamp(4px, 0.8vmin, 8px);
+  }
 }
 
 /* 세로 긴 화면 */
@@ -286,6 +426,15 @@ button:active { background: #666; }
   }
   #character { height: 65%; max-height: 65%; }
   #character img { max-width: 75%; }
+  #bottom-menu {
+    height: clamp(24px, 3.5vmin, 45px);
+    gap: clamp(6px, 1.2vmin, 16px);
+    padding: 0 clamp(5px, 1vmin, 15px);
+  }
+  .menu-text {
+    font-size: clamp(7px, 1vmin, 12px);
+    padding: clamp(2px, 0.5vmin, 5px) clamp(3px, 0.7vmin, 6px);
+  }
 }
 
 /* 화면 흔들림 애니메이션 - 충격 효과 */
