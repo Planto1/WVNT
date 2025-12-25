@@ -32,6 +32,8 @@ class GameState {
     this.skipMode = false;
     this.isHidden = false;
     this.autoSpeed = CONFIG.DEFAULT_AUTO_SPEED;
+    this.isFading = false; // 페이드 중 여부
+    this.isTransitioning = false; // 씬 전환 중 여부
   }
 }
 
@@ -392,6 +394,9 @@ class VisualNovelEngine {
     if (this.elements.game.classList.contains("hidden") || 
         !this.elements.settings.classList.contains("hidden")) return;
     
+    // 페이드 중이거나 씬 전환 중일 때는 클릭 무시 (버그 1 수정)
+    if (this.gameState.isFading || this.gameState.isTransitioning) return;
+    
     // 창 숨김 상태에서는 클릭하면 다시 보이기
     if (this.gameState.isHidden) {
       this.toggleHideWindow();
@@ -580,6 +585,10 @@ class VisualNovelEngine {
 
   async showNext() {
     if (this.gameState.busy) return;
+    
+    // HIDE.W 상태에서는 시나리오 진행 차단 (버그 3 수정)
+    if (this.gameState.isHidden) return;
+    
     this.gameState.busy = true;
 
     try {
@@ -598,19 +607,13 @@ class VisualNovelEngine {
   }
 
   async processLine(line) {
-    // 화면 클리어
+    // 화면 클리어 (버그 2 수정: clear 후 자동 진행)
     if (line.clear === true) {
       this.elements.textArea.innerHTML = "";
       this.gameState.charCount = 0;
       this.gameState.lineIndex++;
-      
-      // AUTO/SKIP 모드에서 자동 진행
-      if (this.gameState.autoMode || this.gameState.skipMode) {
-        const delay = this.gameState.skipMode ? 50 : 200;
-        setTimeout(() => this.showNext(), delay);
-      } else {
-        await this.showNext();
-      }
+      this.gameState.busy = false; // busy 해제하고
+      await this.showNext(); // 다음 라인 처리
       return;
     }
 
@@ -618,14 +621,8 @@ class VisualNovelEngine {
     if (line.shake && typeof line.shake === 'number' && line.shake >= 1 && line.shake <= 100) {
       await this.shakeEffect.perform(line.shake);
       this.gameState.lineIndex++;
-      
-      // AUTO/SKIP 모드에서 자동 진행
-      if (this.gameState.autoMode || this.gameState.skipMode) {
-        const delay = this.gameState.skipMode ? 50 : 300;
-        setTimeout(() => this.showNext(), delay);
-      } else {
-        await this.showNext();
-      }
+      this.gameState.busy = false; // busy 해제하고
+      await this.showNext(); // 다음 라인 처리
       return;
     }
 
@@ -634,14 +631,8 @@ class VisualNovelEngine {
       const loops = line.loops !== undefined ? line.loops : 1;
       await this.audioManager.play(line.audio, loops);
       this.gameState.lineIndex++;
-      
-      // AUTO/SKIP 모드에서 자동 진행
-      if (this.gameState.autoMode || this.gameState.skipMode) {
-        const delay = this.gameState.skipMode ? 50 : 200;
-        setTimeout(() => this.showNext(), delay);
-      } else {
-        await this.showNext();
-      }
+      this.gameState.busy = false; // busy 해제하고
+      await this.showNext(); // 다음 라인 처리
       return;
     }
 
@@ -649,14 +640,8 @@ class VisualNovelEngine {
     if (line.stopAudio === true) {
       this.audioManager.stop();
       this.gameState.lineIndex++;
-      
-      // AUTO/SKIP 모드에서 자동 진행
-      if (this.gameState.autoMode || this.gameState.skipMode) {
-        const delay = this.gameState.skipMode ? 50 : 200;
-        setTimeout(() => this.showNext(), delay);
-      } else {
-        await this.showNext();
-      }
+      this.gameState.busy = false; // busy 해제하고
+      await this.showNext(); // 다음 라인 처리
       return;
     }
 
@@ -736,8 +721,12 @@ class VisualNovelEngine {
   async endScene() {
     await this.fadeOut();
     
+    // 씬 전환 중 플래그 설정 (버그 1 수정)
+    this.gameState.isTransitioning = true;
+    
     // 검은 화면에서 일정 시간 대기 후 다음 씬으로 자동 전환
     setTimeout(() => {
+      this.gameState.isTransitioning = false;
       this.gameState.currentSceneIndex++;
       this.loadScript(this.gameState.currentChapter, this.gameState.currentSceneIndex);
     }, CONFIG.SCENE_TRANSITION_DELAY);
@@ -745,16 +734,22 @@ class VisualNovelEngine {
 
   fadeIn() {
     return new Promise((resolve) => {
+      this.gameState.isFading = true;
       this.setFadeOpacity("0.5", false);
-      setTimeout(resolve, CONFIG.FADE_DURATION);
+      setTimeout(() => {
+        this.gameState.isFading = false;
+        resolve();
+      }, CONFIG.FADE_DURATION);
     });
   }
 
   fadeOut() {
     return new Promise((resolve) => {
+      this.gameState.isFading = true;
       this.setFadeOpacity("1", false);
       setTimeout(() => {
         this.elements.textArea.innerHTML = "";
+        this.gameState.isFading = false;
         resolve();
       }, CONFIG.FADE_DURATION);
     });
@@ -798,6 +793,14 @@ class VisualNovelEngine {
 
   toggleHideWindow() {
     this.gameState.isHidden = !this.gameState.isHidden;
+    
+    // HIDE.W 활성화 시 AUTO/SKIP 모드 해제
+    if (this.gameState.isHidden) {
+      this.gameState.autoMode = false;
+      this.gameState.skipMode = false;
+      this.buttons.auto.classList.remove('active');
+      this.buttons.skip.classList.remove('active');
+    }
     
     this.elements.textArea.style.opacity = this.gameState.isHidden ? '0' : '1';
     this.elements.bottomMenu.classList.toggle('hidden-ui', this.gameState.isHidden);
