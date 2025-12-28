@@ -362,17 +362,83 @@ button:active { background: #666; }
   max-width: clamp(120px, 18vmin, 180px);
 }
 
+/* SAVE/LOAD 팝업 */
+.save-load-popup {
+  min-width: clamp(300px, 50vmin, 600px);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.save-slots, .load-slots {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.5vmin, 16px);
+  margin-bottom: clamp(12px, 2vmin, 20px);
+}
+
+.save-slot {
+  background: rgba(255, 255, 255, 0.05);
+  border: var(--border-width) solid rgba(255, 255, 255, 0.2);
+  border-radius: clamp(3px, 0.4vmin, 6px);
+  padding: clamp(10px, 2vmin, 16px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.save-slot:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(100, 150, 255, 0.5);
+  transform: translateX(4px);
+}
+
+.save-slot.has-data:hover {
+  border-color: rgba(100, 200, 100, 0.5);
+}
+
+.slot-number {
+  font-size: clamp(11px, 1.6vmin, 18px);
+  font-weight: bold;
+  color: rgba(100, 150, 255, 0.9);
+  margin-bottom: clamp(4px, 0.8vmin, 8px);
+}
+
+.slot-info {
+  font-size: clamp(9px, 1.3vmin, 14px);
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: clamp(2px, 0.4vmin, 4px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slot-date {
+  font-size: clamp(8px, 1.1vmin, 12px);
+  color: rgba(255, 255, 255, 0.5);
+}
+
 /* 스크롤바 */
-#text-area::-webkit-scrollbar { width: clamp(4px, 0.5vmin, 8px); }
-#text-area::-webkit-scrollbar-track {
+#text-area::-webkit-scrollbar,
+.save-load-popup::-webkit-scrollbar { 
+  width: clamp(4px, 0.5vmin, 8px); 
+}
+
+#text-area::-webkit-scrollbar-track,
+.save-load-popup::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.1);
   border-radius: clamp(2px, 0.3vmin, 4px);
 }
-#text-area::-webkit-scrollbar-thumb {
+
+#text-area::-webkit-scrollbar-thumb,
+.save-load-popup::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.3);
   border-radius: clamp(2px, 0.3vmin, 4px);
 }
-#text-area::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.5); }
+
+#text-area::-webkit-scrollbar-thumb:hover,
+.save-load-popup::-webkit-scrollbar-thumb:hover { 
+  background: rgba(255, 255, 255, 0.5); 
+}
 
 /* 작은 화면 대응 */
 @media (max-height: 400px) {

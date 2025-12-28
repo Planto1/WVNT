@@ -1,4 +1,4 @@
-/* 비주얼노벨 게임 엔진 - 최적화 버전 */
+/* 비주얼노벨 게임 엔진 - SAVE/LOAD 구현 버전 */
 
 // 상수 정의
 const CONFIG = {
@@ -7,7 +7,8 @@ const CONFIG = {
   FADE_DURATION: 1000,
   BACKGROUND_TRANSITION: 1000,
   DEFAULT_AUTO_SPEED: 1500,
-  SCENE_TRANSITION_DELAY: 1500 // 씬 전환 시 대기 시간
+  SCENE_TRANSITION_DELAY: 1500,
+  MAX_SAVE_SLOTS: 5
 };
 
 // 게임 상태 관리 클래스
@@ -32,8 +33,28 @@ class GameState {
     this.skipMode = false;
     this.isHidden = false;
     this.autoSpeed = CONFIG.DEFAULT_AUTO_SPEED;
-    this.isFading = false; // 페이드 중 여부
-    this.isTransitioning = false; // 씬 전환 중 여부
+    this.isFading = false;
+    this.isTransitioning = false;
+  }
+
+  // 저장용 데이터 생성
+  toSaveData() {
+    return {
+      currentChapter: this.currentChapter,
+      currentSceneIndex: this.currentSceneIndex,
+      lineIndex: this.lineIndex,
+      charCount: this.charCount,
+      autoSpeed: this.autoSpeed
+    };
+  }
+
+  // 저장된 데이터로부터 복원
+  fromSaveData(data) {
+    this.currentChapter = data.currentChapter;
+    this.currentSceneIndex = data.currentSceneIndex;
+    this.lineIndex = data.lineIndex;
+    this.charCount = data.charCount;
+    this.autoSpeed = data.autoSpeed || CONFIG.DEFAULT_AUTO_SPEED;
   }
 }
 
@@ -121,7 +142,7 @@ class BackgroundManager {
           const overlay = this.createOverlay(newBg);
           this.element.appendChild(overlay);
           
-          overlay.offsetHeight; // 강제 리플로우
+          overlay.offsetHeight;
           
           requestAnimationFrame(() => {
             overlay.style.opacity = '1';
@@ -291,6 +312,83 @@ class ShakeEffect {
   }
 }
 
+// 세이브/로드 관리 클래스
+class SaveLoadManager {
+  constructor() {
+    this.savePrefix = 'vnSave_';
+  }
+
+  save(slotNumber, gameState, uiState) {
+    try {
+      const saveData = {
+        timestamp: Date.now(),
+        gameState: gameState.toSaveData(),
+        uiState: {
+          backgroundImage: uiState.backgroundImage,
+          characterImage: uiState.characterImage,
+          characterPosition: uiState.characterPosition,
+          textContent: uiState.textContent,
+          currentText: uiState.currentText
+        }
+      };
+
+      localStorage.setItem(
+        `${this.savePrefix}${slotNumber}`,
+        JSON.stringify(saveData)
+      );
+
+      return true;
+    } catch (error) {
+      console.error('저장 실패:', error);
+      return false;
+    }
+  }
+
+  load(slotNumber) {
+    try {
+      const data = localStorage.getItem(`${this.savePrefix}${slotNumber}`);
+      if (!data) return null;
+
+      return JSON.parse(data);
+    } catch (error) {
+      console.error('불러오기 실패:', error);
+      return null;
+    }
+  }
+
+  getSaveInfo(slotNumber) {
+    const data = this.load(slotNumber);
+    if (!data) return null;
+
+    return {
+      timestamp: data.timestamp,
+      text: data.uiState.currentText || '저장된 데이터',
+      exists: true
+    };
+  }
+
+  deleteSave(slotNumber) {
+    try {
+      localStorage.removeItem(`${this.savePrefix}${slotNumber}`);
+      return true;
+    } catch (error) {
+      console.error('삭제 실패:', error);
+      return false;
+    }
+  }
+
+  formatDate(timestamp) {
+    const date = new Date(timestamp);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  }
+}
+
 // 메인 게임 엔진 클래스
 class VisualNovelEngine {
   constructor() {
@@ -310,6 +408,8 @@ class VisualNovelEngine {
       fade: document.getElementById("fadeLayer"),
       textArea: document.getElementById("text-area"),
       settings: document.getElementById("settings"),
+      saveMenu: document.getElementById("save-menu"),
+      loadMenu: document.getElementById("load-menu"),
       gameContent: document.querySelector('.game-content'),
       bottomMenu: document.getElementById("bottom-menu"),
       autoSpeedSlider: document.getElementById("auto-speed"),
@@ -321,13 +421,14 @@ class VisualNovelEngine {
       settings: document.getElementById("btn-settings"),
       closeSettings: document.getElementById("btn-close-settings"),
       exitToMenu: document.getElementById("btn-exit-to-menu"),
-      // 하단 메뉴 버튼들
       save: document.getElementById("btn-save"),
       load: document.getElementById("btn-load"),
       auto: document.getElementById("btn-auto"),
       skip: document.getElementById("btn-skip"),
       config: document.getElementById("btn-config"),
-      hide: document.getElementById("btn-hide")
+      hide: document.getElementById("btn-hide"),
+      closeSave: document.getElementById("btn-close-save"),
+      closeLoad: document.getElementById("btn-close-load")
     };
   }
 
@@ -337,6 +438,7 @@ class VisualNovelEngine {
     this.backgroundManager = new BackgroundManager(this.elements.background);
     this.textTyper = new TextTyper();
     this.shakeEffect = new ShakeEffect(this.elements.gameContent);
+    this.saveLoadManager = new SaveLoadManager();
   }
 
   bindEvents() {
@@ -347,12 +449,16 @@ class VisualNovelEngine {
     this.buttons.exitToMenu.addEventListener("click", this.handleEvent(() => this.exitToMenu()));
 
     // 하단 메뉴 버튼 이벤트
-    this.buttons.save.addEventListener("click", this.handleEvent(() => this.handleSave()));
-    this.buttons.load.addEventListener("click", this.handleEvent(() => this.handleLoad()));
+    this.buttons.save.addEventListener("click", this.handleEvent(() => this.showSaveMenu()));
+    this.buttons.load.addEventListener("click", this.handleEvent(() => this.showLoadMenu()));
     this.buttons.auto.addEventListener("click", this.handleEvent(() => this.toggleAuto()));
     this.buttons.skip.addEventListener("click", this.handleEvent(() => this.toggleSkip()));
     this.buttons.config.addEventListener("click", this.handleEvent(() => this.showSettings()));
     this.buttons.hide.addEventListener("click", this.handleEvent(() => this.toggleHideWindow()));
+
+    // SAVE/LOAD 닫기 버튼
+    this.buttons.closeSave.addEventListener("click", this.handleEvent(() => this.hideSaveMenu()));
+    this.buttons.closeLoad.addEventListener("click", this.handleEvent(() => this.hideLoadMenu()));
 
     // 설정 슬라이더 이벤트
     this.elements.autoSpeedSlider.addEventListener("input", (e) => this.updateAutoSpeed(e));
@@ -360,6 +466,32 @@ class VisualNovelEngine {
     // 게임 진행 이벤트
     this.elements.game.addEventListener("click", this.handleEvent(() => this.handleGameClick()));
     document.addEventListener("keydown", (e) => this.handleKeydown(e));
+
+    // SAVE/LOAD 슬롯 이벤트 바인딩
+    this.bindSaveSlots();
+    this.bindLoadSlots();
+  }
+
+  bindSaveSlots() {
+    const saveSlots = this.elements.saveMenu.querySelectorAll('.save-slot');
+    saveSlots.forEach(slot => {
+      slot.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const slotNumber = parseInt(slot.dataset.slot);
+        this.saveGame(slotNumber);
+      });
+    });
+  }
+
+  bindLoadSlots() {
+    const loadSlots = this.elements.loadMenu.querySelectorAll('.save-slot');
+    loadSlots.forEach(slot => {
+      slot.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const slotNumber = parseInt(slot.dataset.slot);
+        this.loadGame(slotNumber);
+      });
+    });
   }
 
   handleEvent(callback) {
@@ -370,7 +502,6 @@ class VisualNovelEngine {
   }
 
   loadSettings() {
-    // localStorage에서 설정 불러오기 (옵션)
     const savedSpeed = localStorage.getItem('autoSpeed');
     if (savedSpeed) {
       this.gameState.autoSpeed = parseInt(savedSpeed);
@@ -392,18 +523,17 @@ class VisualNovelEngine {
 
   handleGameClick() {
     if (this.elements.game.classList.contains("hidden") || 
-        !this.elements.settings.classList.contains("hidden")) return;
+        !this.elements.settings.classList.contains("hidden") ||
+        !this.elements.saveMenu.classList.contains("hidden") ||
+        !this.elements.loadMenu.classList.contains("hidden")) return;
     
-    // 페이드 중이거나 씬 전환 중일 때는 클릭 무시 (버그 1 수정)
     if (this.gameState.isFading || this.gameState.isTransitioning) return;
     
-    // 창 숨김 상태에서는 클릭하면 다시 보이기
     if (this.gameState.isHidden) {
       this.toggleHideWindow();
       return;
     }
     
-    // Auto나 Skip 모드 해제
     if (this.gameState.autoMode || this.gameState.skipMode) {
       this.gameState.autoMode = false;
       this.gameState.skipMode = false;
@@ -420,7 +550,9 @@ class VisualNovelEngine {
 
   handleKeydown(e) {
     if (!this.elements.game.classList.contains("hidden") && 
-        this.elements.settings.classList.contains("hidden") && 
+        this.elements.settings.classList.contains("hidden") &&
+        this.elements.saveMenu.classList.contains("hidden") &&
+        this.elements.loadMenu.classList.contains("hidden") &&
         e.key === "Enter") {
       e.preventDefault();
       this.handleGameClick();
@@ -435,8 +567,155 @@ class VisualNovelEngine {
     this.elements.settings.classList.add("hidden");
   }
 
+  showSaveMenu() {
+    this.updateSaveSlots();
+    this.elements.saveMenu.classList.remove("hidden");
+  }
+
+  hideSaveMenu() {
+    this.elements.saveMenu.classList.add("hidden");
+  }
+
+  showLoadMenu() {
+    this.updateLoadSlots();
+    this.elements.loadMenu.classList.remove("hidden");
+  }
+
+  hideLoadMenu() {
+    this.elements.loadMenu.classList.add("hidden");
+  }
+
+  updateSaveSlots() {
+    const slots = this.elements.saveMenu.querySelectorAll('.save-slot');
+    slots.forEach(slot => {
+      const slotNumber = parseInt(slot.dataset.slot);
+      const saveInfo = this.saveLoadManager.getSaveInfo(slotNumber);
+      
+      const infoElement = slot.querySelector('.slot-info');
+      const dateElement = slot.querySelector('.slot-date');
+      
+      if (saveInfo) {
+        slot.classList.add('has-data');
+        infoElement.textContent = saveInfo.text.substring(0, 50) + (saveInfo.text.length > 50 ? '...' : '');
+        dateElement.textContent = this.saveLoadManager.formatDate(saveInfo.timestamp);
+      } else {
+        slot.classList.remove('has-data');
+        infoElement.textContent = '빈 슬롯';
+        dateElement.textContent = '';
+      }
+    });
+  }
+
+  updateLoadSlots() {
+    const slots = this.elements.loadMenu.querySelectorAll('.save-slot');
+    slots.forEach(slot => {
+      const slotNumber = parseInt(slot.dataset.slot);
+      const saveInfo = this.saveLoadManager.getSaveInfo(slotNumber);
+      
+      const infoElement = slot.querySelector('.slot-info');
+      const dateElement = slot.querySelector('.slot-date');
+      
+      if (saveInfo) {
+        slot.classList.add('has-data');
+        slot.style.cursor = 'pointer';
+        infoElement.textContent = saveInfo.text.substring(0, 50) + (saveInfo.text.length > 50 ? '...' : '');
+        dateElement.textContent = this.saveLoadManager.formatDate(saveInfo.timestamp);
+      } else {
+        slot.classList.remove('has-data');
+        slot.style.cursor = 'not-allowed';
+        infoElement.textContent = '빈 슬롯';
+        dateElement.textContent = '';
+      }
+    });
+  }
+
+  saveGame(slotNumber) {
+    // 현재 UI 상태 수집
+    const currentLine = this.gameState.scriptData?.lines?.[this.gameState.lineIndex - 1];
+    const uiState = {
+      backgroundImage: this.elements.background.style.backgroundImage,
+      characterImage: this.elements.character.innerHTML,
+      characterPosition: this.getCharacterPosition(),
+      textContent: this.elements.textArea.innerHTML,
+      currentText: currentLine?.text || '게임 진행 중'
+    };
+
+    const success = this.saveLoadManager.save(slotNumber, this.gameState, uiState);
+    
+    if (success) {
+      this.updateSaveSlots();
+      console.log(`슬롯 ${slotNumber}에 저장 완료`);
+    } else {
+      console.error('저장 실패');
+    }
+  }
+
+  async loadGame(slotNumber) {
+    const saveData = this.saveLoadManager.load(slotNumber);
+    
+    if (!saveData) {
+      console.log('저장된 데이터가 없습니다');
+      return;
+    }
+
+    // 메뉴 닫기
+    this.hideLoadMenu();
+
+    // 게임 상태 복원
+    this.gameState.fromSaveData(saveData.gameState);
+
+    // 씬 인덱스 로드
+    await this.loadSceneIndex();
+
+    // 스크립트 로드
+    const fileName = this.gameState.sceneIndex?.[this.gameState.currentChapter]?.[this.gameState.currentSceneIndex];
+    
+    if (!fileName) {
+      console.error('저장된 씬을 찾을 수 없습니다');
+      return;
+    }
+
+    try {
+      const response = await fetch(fileName);
+      if (!response.ok) throw new Error(`파일 없음: ${fileName}`);
+      
+      this.gameState.scriptData = await response.json();
+
+      // UI 복원
+      this.elements.background.style.backgroundImage = saveData.uiState.backgroundImage;
+      this.elements.character.innerHTML = saveData.uiState.characterImage;
+      this.setCharacterPositionFromClass(saveData.uiState.characterPosition);
+      this.elements.textArea.innerHTML = saveData.uiState.textContent;
+      this.gameState.charCount = saveData.gameState.charCount;
+
+      // 페이드 설정
+      this.setFadeOpacity("0.5", true);
+      
+      // AUTO 속도 복원
+      this.elements.autoSpeedSlider.value = this.gameState.autoSpeed;
+      this.updateAutoSpeedDisplay();
+
+      console.log(`슬롯 ${slotNumber}에서 불러오기 완료`);
+    } catch (error) {
+      console.error('불러오기 실패:', error);
+    }
+  }
+
+  getCharacterPosition() {
+    if (this.elements.character.classList.contains('pos-left')) return 'left';
+    if (this.elements.character.classList.contains('pos-right')) return 'right';
+    return 'center';
+  }
+
+  setCharacterPositionFromClass(position) {
+    this.elements.character.classList.remove('pos-left', 'pos-center', 'pos-right');
+    this.elements.character.classList.add(`pos-${position}`);
+  }
+
   exitToMenu() {
     this.hideSettings();
+    this.hideSaveMenu();
+    this.hideLoadMenu();
     this.elements.game.classList.add("hidden");
     this.elements.main.classList.remove("hidden");
     this.resetGame();
@@ -450,14 +729,12 @@ class VisualNovelEngine {
     this.elements.character.innerHTML = "";
     this.elements.character.classList.remove('pos-left', 'pos-center', 'pos-right');
     
-    // 하단 메뉴 버튼 상태 초기화
     this.buttons.auto.classList.remove('active');
     this.buttons.skip.classList.remove('active');
     this.buttons.hide.classList.remove('active');
     this.elements.textArea.style.opacity = '1';
     this.elements.bottomMenu.classList.remove('hidden-ui');
     
-    // 설정 복원
     this.loadSettings();
   }
 
@@ -472,7 +749,7 @@ class VisualNovelEngine {
       const transition = this.elements.fade.style.transition;
       this.elements.fade.style.transition = "none";
       this.elements.fade.style.opacity = value;
-      this.elements.fade.offsetHeight; // 강제 리플로우
+      this.elements.fade.offsetHeight;
       this.elements.fade.style.transition = transition || "opacity 1s ease";
     } else {
       this.elements.fade.style.opacity = value;
@@ -486,7 +763,6 @@ class VisualNovelEngine {
       this.gameState.sceneIndex = await response.json();
     } catch (error) {
       console.error("scenes.json 로드 실패:", error);
-      // 폴백 데이터
       this.gameState.sceneIndex = {
         "01": ["01_001.json", "01_002.json"],
         "02": ["02_001.json"]
@@ -586,7 +862,6 @@ class VisualNovelEngine {
   async showNext() {
     if (this.gameState.busy) return;
     
-    // HIDE.W 상태에서는 시나리오 진행 차단 (버그 3 수정)
     if (this.gameState.isHidden) return;
     
     this.gameState.busy = true;
@@ -607,59 +882,51 @@ class VisualNovelEngine {
   }
 
   async processLine(line) {
-    // 화면 클리어 (버그 2 수정: clear 후 자동 진행)
     if (line.clear === true) {
       this.elements.textArea.innerHTML = "";
       this.gameState.charCount = 0;
       this.gameState.lineIndex++;
-      this.gameState.busy = false; // busy 해제하고
-      await this.showNext(); // 다음 라인 처리
+      this.gameState.busy = false;
+      await this.showNext();
       return;
     }
 
-    // 화면 흔들림
     if (line.shake && typeof line.shake === 'number' && line.shake >= 1 && line.shake <= 100) {
       await this.shakeEffect.perform(line.shake);
       this.gameState.lineIndex++;
-      this.gameState.busy = false; // busy 해제하고
-      await this.showNext(); // 다음 라인 처리
+      this.gameState.busy = false;
+      await this.showNext();
       return;
     }
 
-    // 오디오 재생
     if (line.audio) {
       const loops = line.loops !== undefined ? line.loops : 1;
       await this.audioManager.play(line.audio, loops);
       this.gameState.lineIndex++;
-      this.gameState.busy = false; // busy 해제하고
-      await this.showNext(); // 다음 라인 처리
+      this.gameState.busy = false;
+      await this.showNext();
       return;
     }
 
-    // 오디오 정지
     if (line.stopAudio === true) {
       this.audioManager.stop();
       this.gameState.lineIndex++;
-      this.gameState.busy = false; // busy 해제하고
-      await this.showNext(); // 다음 라인 처리
+      this.gameState.busy = false;
+      await this.showNext();
       return;
     }
 
-    // 배경 변경
     if (line.bg) {
       await this.backgroundManager.change(line.bg);
     }
     
-    // 캐릭터 업데이트
     this.updateCharacter(line);
 
-    // 첫 라인 페이드 인
     if (this.gameState.firstLineOfScene) {
       await this.fadeIn();
       this.gameState.firstLineOfScene = false;
     }
 
-    // 텍스트 출력
     await this.displayText(line);
     this.gameState.lineIndex++;
   }
@@ -694,11 +961,9 @@ class VisualNovelEngine {
     lineElement.className = "line";
     this.elements.textArea.appendChild(lineElement);
 
-    // Skip 모드일 때는 즉시 표시
     if (this.gameState.skipMode) {
       lineElement.textContent = text;
       this.gameState.isTyping = false;
-      // Skip 모드에서는 바로 다음으로
       setTimeout(() => {
         if (this.gameState.skipMode) {
           this.showNext();
@@ -707,7 +972,6 @@ class VisualNovelEngine {
     } else {
       await this.textTyper.type(lineElement, text, this.gameState);
       
-      // Auto 모드일 때 자동으로 다음 라인
       if (this.gameState.autoMode && !this.gameState.isTyping) {
         setTimeout(() => {
           if (this.gameState.autoMode) {
@@ -721,10 +985,8 @@ class VisualNovelEngine {
   async endScene() {
     await this.fadeOut();
     
-    // 씬 전환 중 플래그 설정 (버그 1 수정)
     this.gameState.isTransitioning = true;
     
-    // 검은 화면에서 일정 시간 대기 후 다음 씬으로 자동 전환
     setTimeout(() => {
       this.gameState.isTransitioning = false;
       this.gameState.currentSceneIndex++;
@@ -755,33 +1017,21 @@ class VisualNovelEngine {
     });
   }
 
-  // 하단 메뉴 기능들
-  handleSave() {
-    console.log("Save 기능 - 구현 예정");
-    // TODO: 저장 기능 구현
-  }
-
-  handleLoad() {
-    console.log("Load 기능 - 구현 예정");
-    // TODO: 불러오기 기능 구현
-  }
-
   toggleAuto() {
     this.gameState.autoMode = !this.gameState.autoMode;
-    this.gameState.skipMode = false; // auto와 skip은 동시에 활성화 불가
+    this.gameState.skipMode = false;
     
     this.buttons.auto.classList.toggle('active', this.gameState.autoMode);
     this.buttons.skip.classList.remove('active');
     
     if (this.gameState.autoMode && !this.gameState.isTyping && !this.gameState.busy) {
-      // 자동 진행 시작
       setTimeout(() => this.showNext(), this.gameState.autoSpeed);
     }
   }
 
   toggleSkip() {
     this.gameState.skipMode = !this.gameState.skipMode;
-    this.gameState.autoMode = false; // auto와 skip은 동시에 활성화 불가
+    this.gameState.autoMode = false;
     
     this.buttons.skip.classList.toggle('active', this.gameState.skipMode);
     this.buttons.auto.classList.remove('active');
@@ -794,7 +1044,6 @@ class VisualNovelEngine {
   toggleHideWindow() {
     this.gameState.isHidden = !this.gameState.isHidden;
     
-    // HIDE.W 활성화 시 AUTO/SKIP 모드 해제
     if (this.gameState.isHidden) {
       this.gameState.autoMode = false;
       this.gameState.skipMode = false;
