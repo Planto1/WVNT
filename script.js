@@ -44,7 +44,9 @@ class GameState {
       currentSceneIndex: this.currentSceneIndex,
       lineIndex: this.lineIndex,
       charCount: this.charCount,
-      autoSpeed: this.autoSpeed
+      autoSpeed: this.autoSpeed,
+      currentAudio: null, // 오디오 정보는 별도로 저장
+      audioLoops: null
     };
   }
 
@@ -63,6 +65,8 @@ class AudioManager {
   constructor() {
     this.audioCache = new Map();
     this.currentAudio = null;
+    this.currentAudioPath = null;
+    this.currentLoops = null;
   }
 
   async play(audioPath, loops = 1) {
@@ -78,6 +82,8 @@ class AudioManager {
       }
 
       this.currentAudio = audio;
+      this.currentAudioPath = audioPath;
+      this.currentLoops = loops;
       audio.currentTime = 0;
 
       if (loops === -1) {
@@ -112,7 +118,20 @@ class AudioManager {
       this.currentAudio.currentTime = 0;
       this.currentAudio.loop = false;
       this.currentAudio = null;
+      this.currentAudioPath = null;
+      this.currentLoops = null;
     }
+  }
+
+  getCurrentAudioInfo() {
+    // 현재 재생 중인 오디오 정보 반환 (버그 2 수정)
+    if (this.currentAudioPath && this.currentAudio && !this.currentAudio.paused && !this.currentAudio.ended) {
+      return {
+        path: this.currentAudioPath,
+        loops: this.currentLoops
+      };
+    }
+    return null;
   }
 
   cleanup() {
@@ -568,6 +587,18 @@ class VisualNovelEngine {
   }
 
   showSaveMenu() {
+    // 게임 진행 중일 때는 세이브 불가 (버그 1 수정)
+    if (this.gameState.busy || this.gameState.isFading || this.gameState.isTransitioning || this.gameState.isTyping) {
+      console.log('게임 진행 중에는 저장할 수 없습니다');
+      return;
+    }
+    
+    // AUTO/SKIP 모드 해제
+    this.gameState.autoMode = false;
+    this.gameState.skipMode = false;
+    this.buttons.auto.classList.remove('active');
+    this.buttons.skip.classList.remove('active');
+    
     this.updateSaveSlots();
     this.elements.saveMenu.classList.remove("hidden");
   }
@@ -577,6 +608,18 @@ class VisualNovelEngine {
   }
 
   showLoadMenu() {
+    // 게임 진행 중일 때는 로드 불가 (버그 1 수정)
+    if (this.gameState.busy || this.gameState.isFading || this.gameState.isTransitioning || this.gameState.isTyping) {
+      console.log('게임 진행 중에는 불러올 수 없습니다');
+      return;
+    }
+    
+    // AUTO/SKIP 모드 해제
+    this.gameState.autoMode = false;
+    this.gameState.skipMode = false;
+    this.buttons.auto.classList.remove('active');
+    this.buttons.skip.classList.remove('active');
+    
     this.updateLoadSlots();
     this.elements.loadMenu.classList.remove("hidden");
   }
@@ -630,15 +673,32 @@ class VisualNovelEngine {
   }
 
   saveGame(slotNumber) {
+    // 현재 표시된 텍스트 추출 (버그 4 수정)
+    const textLines = this.elements.textArea.querySelectorAll('.line');
+    let displayedText = '';
+    if (textLines.length > 0) {
+      const lastLine = textLines[textLines.length - 1];
+      displayedText = lastLine.textContent || '게임 진행 중';
+    } else {
+      displayedText = '게임 진행 중';
+    }
+
+    // 현재 오디오 정보 가져오기 (버그 2 수정)
+    const audioInfo = this.audioManager.getCurrentAudioInfo();
+    console.log('저장할 오디오 정보:', audioInfo); // 디버그 로그
+
     // 현재 UI 상태 수집
-    const currentLine = this.gameState.scriptData?.lines?.[this.gameState.lineIndex - 1];
     const uiState = {
       backgroundImage: this.elements.background.style.backgroundImage,
       characterImage: this.elements.character.innerHTML,
       characterPosition: this.getCharacterPosition(),
       textContent: this.elements.textArea.innerHTML,
-      currentText: currentLine?.text || '게임 진행 중'
+      currentText: displayedText,
+      audioPath: audioInfo ? audioInfo.path : null,
+      audioLoops: audioInfo ? audioInfo.loops : null
     };
+
+    console.log('저장할 UI 상태:', uiState); // 디버그 로그
 
     const success = this.saveLoadManager.save(slotNumber, this.gameState, uiState);
     
@@ -658,8 +718,13 @@ class VisualNovelEngine {
       return;
     }
 
+    console.log('불러온 저장 데이터:', saveData); // 디버그 로그
+
     // 메뉴 닫기
     this.hideLoadMenu();
+
+    // 현재 재생 중인 오디오 정지 (버그 3 수정)
+    this.audioManager.stop();
 
     // 게임 상태 복원
     this.gameState.fromSaveData(saveData.gameState);
@@ -694,6 +759,16 @@ class VisualNovelEngine {
       // AUTO 속도 복원
       this.elements.autoSpeedSlider.value = this.gameState.autoSpeed;
       this.updateAutoSpeedDisplay();
+
+      // 저장된 오디오 재생 (버그 2 수정)
+      console.log('복원할 오디오:', saveData.uiState.audioPath, saveData.uiState.audioLoops); // 디버그 로그
+      if (saveData.uiState.audioPath && saveData.uiState.audioPath !== 'null') {
+        const loops = saveData.uiState.audioLoops !== null && saveData.uiState.audioLoops !== undefined 
+                      ? saveData.uiState.audioLoops 
+                      : 1;
+        console.log('오디오 재생 시작:', saveData.uiState.audioPath, loops); // 디버그 로그
+        await this.audioManager.play(saveData.uiState.audioPath, loops);
+      }
 
       console.log(`슬롯 ${slotNumber}에서 불러오기 완료`);
     } catch (error) {
